@@ -7,9 +7,9 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
-#include <nlohmann/json.hpp>
+//#include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
+//using json = nlohmann::json;
 
 const char* ssid     = "gbshs-rain 2.4G";  // The SSID (name) of the Wi-Fi network you want to connect to
 const char* password = "happygbs";         // The password of the Wi-Fi network
@@ -86,10 +86,11 @@ String get(String query) {
     } else {
       Serial.printf("[HTTPS] Unable to connect\n");
     }
-    return "{}";
   }
+  return "{}";
 }
 
+/*
 String parse(String jsonString) {
   std::string std_payload = payload.c_str(); // String -> std::string 변환
 
@@ -110,7 +111,7 @@ String parse(String jsonString) {
     Serial.println(e.what());
     return "";
   }
-}
+}*/
 
 void new_scene(std::string scene) {  //이 함수 내에 장면 구성, 이 함수를 호출하면 화면 변경
   if (scene == std::string("Lobby")) {
