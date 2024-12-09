@@ -4,10 +4,12 @@
 #include <string>
 #include <iostream>
 #include <Image_print.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 const char* ssid     = "gbshs-rain 2.4G";  // The SSID (name) of the Wi-Fi network you want to connect to
 const char* password = "happygbs";         // The password of the Wi-Fi network
@@ -27,7 +29,7 @@ std::string scene = "Lobby";
 
 
 void setup() {
-  wifi_connect();
+  wifiConnect();
   
   tft.begin();
   tft.setRotation(0);
@@ -42,7 +44,7 @@ void loop() {
   // 버튼 입력 들어오면 다음 장면으로 전환 - 더블클릭 구분
 }
 
-void wifi_connect() {
+void wifiConnect() {
   Serial.begin(115200);         // Start the Serial communication to send messages to the computer
   delay(10);
   Serial.println('\n');
@@ -74,8 +76,9 @@ String get(String query) {
     if (https.begin(client, fullUrl)) {
       int httpCode = https.GET();
       Serial.println("============== Response code: " + String(httpCode));
+      String result = "";
       if (httpCode > 0) {
-        String result = https.getString();
+        result = https.getString();
         Serial.println(result);
       }
       https.end();
@@ -84,6 +87,28 @@ String get(String query) {
       Serial.printf("[HTTPS] Unable to connect\n");
     }
     return "{}";
+  }
+}
+
+String parse(String jsonString) {
+  std::string std_payload = payload.c_str(); // String -> std::string 변환
+
+  try {
+    // JSON 파싱
+    json parsed_json = json::parse(std_payload);
+    // "text" 키의 값 추출
+    if (parsed_json.contains("text")) {
+        String text_value = String(parsed_json["text"].get<std::string>().c_str());
+        Serial.println("Value of 'text': " + text_value);
+        return text_value;
+    } else {
+        Serial.println("'text' key not found in JSON.");
+        return "";
+    }
+  } catch (const json::parse_error& e) {
+    Serial.print("Error parsing JSON: ");
+    Serial.println(e.what());
+    return "";
   }
 }
 
