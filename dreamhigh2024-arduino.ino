@@ -1,17 +1,18 @@
 #include <TFT_eSPI.h> // Hardware-specific library
+TFT_eSPI tft = TFT_eSPI(); // Invoke library
 #include <AimHangul.h>
 #include <vector>
 #include <string>
 #include <iostream>
 #include <Image_print.h>
-#include <ESP8266WiFi.h>
+//#include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
 //#include <nlohmann/json.hpp>
 
 //using json = nlohmann::json;
 
-const char* ssid     = "gbshs-rain 2.4G";  // The SSID (name) of the Wi-Fi network you want to connect to
+const char* ssid     = "203mirroring";  // The SSID (name) of the Wi-Fi network you want to connect to
 const char* password = "happygbs";         // The password of the Wi-Fi network
 
 String url = "https://raw.githubusercontent.com/piz2a/SnareStrokeGAN/refs/heads/master/record.txt";
@@ -22,14 +23,16 @@ String url = "https://raw.githubusercontent.com/piz2a/SnareStrokeGAN/refs/heads/
 #define YELLOW 0xFFE0
 #define BLACK 000000
 
-TFT_eSPI tft = TFT_eSPI(); // Invoke library
+
 
 std::vector<std::string> scenes = {"Lobby", "thermo"}; // 필요하면 사용 - 근데 필요 없을 듯
 std::string scene = "Lobby";
 
 
 void setup() {
-  wifiConnect();
+  //wifiConnect();
+  pinMode(D8, OUTPUT);
+  digitalWrite(D8, HIGH);
   
   tft.begin();
   tft.setRotation(0);
@@ -38,12 +41,12 @@ void setup() {
 }
 
 void loop() {
-  delay(3000);
+  delay(1000);
   scene = scenes[1];
   new_scene(scene);
   // 버튼 입력 들어오면 다음 장면으로 전환 - 더블클릭 구분
 }
-
+/*
 void wifiConnect() {
   Serial.begin(115200);         // Start the Serial communication to send messages to the computer
   delay(10);
@@ -89,7 +92,7 @@ String get(String query) {
   }
   return "{}";
 }
-
+/*
 /*
 String parse(String jsonString) {
   std::string std_payload = payload.c_str(); // String -> std::string 변환
