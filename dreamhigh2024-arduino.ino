@@ -5,14 +5,16 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke library
 #include <string>
 #include <iostream>
 #include <Image_print.h>
-//#include <ESP8266WiFi.h>
+
+#include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
+
 //#include <nlohmann/json.hpp>
 
 //using json = nlohmann::json;
 
-const char* ssid     = "203mirroring";  // The SSID (name) of the Wi-Fi network you want to connect to
+const char* ssid     = "gbshs-rain 2.4G";  // The SSID (name) of the Wi-Fi network you want to connect to
 const char* password = "happygbs";         // The password of the Wi-Fi network
 
 String url = "https://raw.githubusercontent.com/piz2a/SnareStrokeGAN/refs/heads/master/record.txt";
@@ -25,30 +27,32 @@ String url = "https://raw.githubusercontent.com/piz2a/SnareStrokeGAN/refs/heads/
 
 
 
-std::vector<std::string> scenes = {"Lobby", "thermo"}; // 필요하면 사용 - 근데 필요 없을 듯
-std::string scene = "Lobby";
+std::vector<std::string> scenes = {"thermo", "chlorox"}; // 장면 나열
+std::string scene = "thermo";
 
 
 void setup() {
-  //wifiConnect();
+  
   pinMode(D8, OUTPUT);
   digitalWrite(D8, HIGH);
   
   tft.begin();
   tft.setRotation(0);
+  wifiConnect();
 
-  new_scene(scene);
+  new_scene("chlorox");
+  tft.println(get(""));
 }
 
 void loop() {
   delay(1000);
-  scene = scenes[1];
-  new_scene(scene);
+
   // 버튼 입력 들어오면 다음 장면으로 전환 - 더블클릭 구분
 }
-/*
+
 void wifiConnect() {
-  Serial.begin(115200);         // Start the Serial communication to send messages to the computer
+  //Serial.begin(115200);         // Start the Serial communication to send messages to the computer
+  Serial.begin(9600);
   delay(10);
   Serial.println('\n');
   
@@ -60,10 +64,13 @@ void wifiConnect() {
   while (WiFi.status() != WL_CONNECTED) { // Wait for the Wi-Fi to connect
     delay(1000);
     Serial.print(++i); Serial.print(' ');
+    tft.setCursor(0,0);
+    tft.fillScreen(TFT_BLACK);
+    tft.println("CONNECTING...");
   }
 
   Serial.println('\n');
-  Serial.println("Connection established!");  
+  Serial.println("Connection established!");
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
 }
@@ -92,7 +99,7 @@ String get(String query) {
   }
   return "{}";
 }
-/*
+
 /*
 String parse(String jsonString) {
   std::string std_payload = payload.c_str(); // String -> std::string 변환
@@ -116,32 +123,46 @@ String parse(String jsonString) {
   }
 }*/
 
-void new_scene(std::string scene) {  //이 함수 내에 장면 구성, 이 함수를 호출하면 화면 변경
-  if (scene == std::string("Lobby")) {
-    tft.fillScreen(RED);
+void new_scene(std::string scene) {  //이 함수 내에 장면 구성, 이 함수를 호출하면 화면 변경 - (장면)
+  if (scene == std::string("thermo")) {
+    thermo();
   }
-  else if (scene == std::string("thermo")) {
-    tft.fillScreen(BLACK);
-    
-    tft.setCursor(0,0);
-    AimHangul_h2(20,5,"YY/MM/DD  DAY", WHITE);
-    tft.drawLine(0,25,240,25, WHITE);
-    tft.setCursor(10,210);
-    tft.setTextSize(2);
-    tft.println("Temp: __._'C");
-    tft.setCursor(10,235);
-    tft.println("Humidity: __._%");
-    tft.setCursor(10,260);
-    tft.println("Max Temp: __._'C");
-    tft.setCursor(10,285);
-    tft.println("Min_Temp: __._'C");
-    tft.setCursor(0,30);
-    tft.drawBitmap(0,0,sunny_image, 180, 180, TFT_WHITE);
+  else if (scene == std::string("chlorox")){
+    chlorox();
   }
   else {
     tft.fillScreen(BLACK);
     AimHangul_x4(0,70, "장면 없음", WHITE);
   }
 }
+void status() {
+  tft.drawRect(0,0,240,20,TFT_BLACK);
+  tft.setCursor(0,0);
+  AimHangul_h2(20,5,"YY/MM/DD  DAY", WHITE);  // 한글 출력 가능한 함수 - (x좌표, y좌표, 글, 색)
+  tft.drawLine(0,25,240,25, WHITE);  // 직선을 그리는 함수 - (출발점 x, 출발점 y, 도착점 x, 도착점 y, 색)
+}
+void thermo() {
+  tft.fillScreen(BLACK);  // 화면 전체를 채우는 함수 - (색)
+  status();
+  tft.setCursor(10,210);  // 커서 좌표 설정 - (x좌표, y좌표)
+  tft.setTextSize(2);  // 글자 크기 설정 - (크기)
+  tft.println("Temp: __._'C");  // 글자(한글 제외) 작성 - (글)
+  tft.setCursor(10,235);
+  tft.println("Humidity: __._%");
+  tft.setCursor(10,260);
+  tft.println("Max Temp: __._'C");
+  tft.setCursor(10,285);
+  tft.println("Min_Temp: __._'C");
+  tft.setCursor(0,30);
+  tft.drawBitmap(56,50, sunny_image, 128,128, TFT_WHITE, TFT_BLACK);  // 이미지 출력(단색 이미지만) - (x, y, 비맵, 너비, 높이, 전경 색, 배경 색)
+}
 
-// 이미지 출력 함수 - 이미지 저장 라이브러리 만들자~
+void chlorox() {
+  tft.fillScreen(BLACK);
+  status();
+  tft.drawBitmap(56,50,chlorox_image, 128, 128, WHITE, BLACK);
+  tft.setTextSize(6);
+  tft.setCursor(20,240);
+  tft.println("1300");
+  AimHangul_v2(165,250,"원/100mL",WHITE);
+}
