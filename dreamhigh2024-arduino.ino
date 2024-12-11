@@ -1,11 +1,10 @@
 #include <TFT_eSPI.h> // Hardware-specific library
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 #include <AimHangul.h>
+#include "Image_print.h"
 #include <vector>
 #include <string>
 #include <iostream>
-#include <Image_print.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
@@ -14,7 +13,7 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke library
 
 //using json = nlohmann::json;
 
-const char* ssid     = "gbshs-rain 2.4G";  // The SSID (name) of the Wi-Fi network you want to connect to
+const char* ssid     = "gbshs_com1 2.4G";  // The SSID (name) of the Wi-Fi network you want to connect to
 const char* password = "happygbs";         // The password of the Wi-Fi network
 
 String url = "https://raw.githubusercontent.com/piz2a/SnareStrokeGAN/refs/heads/master/record.txt";
@@ -24,6 +23,9 @@ String url = "https://raw.githubusercontent.com/piz2a/SnareStrokeGAN/refs/heads/
 #define RED 0xF800
 #define YELLOW 0xFFE0
 #define BLACK 000000
+
+
+
 
 
 
@@ -40,7 +42,7 @@ void setup() {
   tft.setRotation(0);
   wifiConnect();
 
-  new_scene("chlorox");
+  new_scene("thermo");
   tft.println(get(""));
 }
 
@@ -127,12 +129,12 @@ void new_scene(std::string scene) {  //이 함수 내에 장면 구성, 이 함�
   if (scene == std::string("thermo")) {
     thermo();
   }
-  else if (scene == std::string("chlorox")){
-    chlorox();
+  else if (scene == std::string("clorox")){
+    clorox();
   }
   else {
     tft.fillScreen(BLACK);
-    AimHangul_x4(0,70, "장면 없음", WHITE);
+    AimHangul_x4(50,70, "장면 없음", WHITE);
   }
 }
 void status() {
@@ -146,23 +148,27 @@ void thermo() {
   status();
   tft.setCursor(10,210);  // 커서 좌표 설정 - (x좌표, y좌표)
   tft.setTextSize(2);  // 글자 크기 설정 - (크기)
-  tft.println("Temp: __._'C");  // 글자(한글 제외) 작성 - (글)
+  tft.println("Temp: __._`C");  // 글자(한글 제외) 작성 - (글)
   tft.setCursor(10,235);
   tft.println("Humidity: __._%");
   tft.setCursor(10,260);
-  tft.println("Max Temp: __._'C");
+  tft.println("Max Temp: __._`C");
   tft.setCursor(10,285);
-  tft.println("Min_Temp: __._'C");
+  tft.println("Min_Temp: __._`C");
   tft.setCursor(0,30);
-  tft.drawBitmap(56,50, sunny_image, 128,128, TFT_WHITE, TFT_BLACK);  // 이미지 출력(단색 이미지만) - (x, y, 비맵, 너비, 높이, 전경 색, 배경 색)
+  tft.drawBitmap(56,50, sunny_image, 128,128, TFT_RED, TFT_BLACK);  // 이미지 출력(단색 이미지만) - (x, y, 비맵, 너비, 높이, 전경 색, 배경 색)
 }
 
-void chlorox() {
+void clorox() {
   tft.fillScreen(BLACK);
   status();
-  tft.drawBitmap(56,50,chlorox_image, 128, 128, WHITE, BLACK);
+  tft.drawBitmap(56,50,clorox_image, 128, 128, WHITE, BLACK);
   tft.setTextSize(6);
   tft.setCursor(20,240);
   tft.println("1300");
-  AimHangul_v2(165,250,"원/100mL",WHITE);
+  AimHangul(165,250,"원/100mL",WHITE);
 }
+
+
+//AimHangul(20) < AimHangul_x2 < AimHangul_v2(40), AimHangul_x4
+
