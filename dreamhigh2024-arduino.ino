@@ -88,7 +88,7 @@ void setup() {
   pinMode(D8, OUTPUT);
   digitalWrite(D8, HIGH);
   
-  wifiConnect();
+  //wifiConnect();
 
   sceneManager.load();
 }
@@ -104,14 +104,9 @@ void loop() {
   }
 
   // 버튼 입력 들어오면 다음 장면으로 전환 - 더블클릭 구분
-  bool btn = analogRead(btnPin) > btnThreshold;
-
-  if (btn == true && btn_prev == false) {
+  if (detect_touch()) {
     sceneManager.next();
   }
-
-  btn_prev = btn;
-
   delay(10);
 }
 
@@ -124,7 +119,7 @@ void wifiConnect() {
   Serial.print(ssid); Serial.println(" ...");
 
   int i = 0;
-  while (WiFi.status() != WL_CONNECTED) { // Wait for the Wi-Fi to connect
+  while (WiFi.status()    != WL_CONNECTED) { // Wait for the Wi-Fi to connect
     if (i >= 30) {
       Serial.println("Connection failed");
       return;
@@ -272,4 +267,14 @@ void parseScene(String jsonString) {
   }
 }
 
+
+int detect_touch() {
+  uint16_t x, y; // To store the touch coordinates
+  bool pressed = tft.getTouch(&x, &y);
+  if (!digitalRead(2)) {
+    Serial.println("touched");
+    return 1;
+  }
+  return 0;
+}
 //AimHangul(20) < AimHangul_x2 < AimHangul_v2(40), AimHangul_x4
