@@ -1,11 +1,5 @@
 [
 	{
-		"template": "big-number",
-		"number": "1300",
-		"unit": "원/100mL",
-		"image": "clorox"
-	},
-	{
 		"template": "4row",
 		"row": [
 			"Temp: __._`C",
@@ -14,5 +8,11 @@
 			"Min_Temp: __._`C"
 		],
 		"image": "sunny"
+	},
+	{
+		"template": "big-number",
+		"number": "1300",
+		"unit": "원/100mL",
+		"image": "clorox"
 	}
 ]
