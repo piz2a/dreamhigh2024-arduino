@@ -19,12 +19,15 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke library
 #define YELLOW 0xFFE0
 #define BLACK 0x0000
 
+#define BG_COLOR TFT_BLACK
+#define FG_COLOR TFT_WHITE
+
 // [5G 안됨] Wi-Fi 네크워크의 SSID
-const char* ssid     = "gbshs_com1 2.4G";
+const char* ssid     = "gbshs-rain 2.4G";
 // Wi-Fi 네트워크의 비밀번호
 const char* password = "happygbs";
 // Flask API URL
-const String url = "https://flask-hello-world-git-main-dduicoders-projects.vercel.app/";
+const String url = "https://flask-hello-world-azure-nu.vercel.app/";
 
 unsigned long timer = 0;
 const unsigned long refreshPeriod = 10000;  // ms마다 크롤링
@@ -34,8 +37,8 @@ String dateString = "";
 const uint8_t* getImage(const String& imageName) {
   if (imageName == "clorox") {
     return clorox_image;
-  } else if (imageName == "sunny") {
-    return sunny_image;
+  } else if (imageName == "thermo") {
+    return thermo_image;
   } else if (imageName == "clock") {
     return clock_image;
   } else if (imageName == "hangang") {
@@ -64,7 +67,7 @@ public:
 
   void load() {
     if (currentIndex != lastIndex) {  // 현재 장면과 이전 장면이 다를 때만 갱신
-      tft.fillScreen(BLACK);          // 화면 초기화
+      tft.fillScreen(BG_COLOR);          // 화면 초기화
       status();
       if (currentIndex < scenes.size()) {
         scenes[currentIndex]();       // 현재 장면 호출
@@ -88,6 +91,7 @@ void setup() {
   Serial.begin(9600);
   tft.begin();
   tft.setRotation(0);
+  tft.setTextColor(FG_COLOR);
 
   pinMode(D8, OUTPUT);
   digitalWrite(D8, HIGH);
@@ -104,7 +108,7 @@ void loop() {
       parseScene(jsonString);
       sceneManager.load();
     } else {  // if there's no internet
-      AimHangul_h2(20, 5, "No Internet", WHITE);
+      AimHangul_h2(20, 5, "No Internet", FG_COLOR);
     }
     timer += refreshPeriod;
     Serial.print("Free Memory: ");
@@ -180,10 +184,10 @@ String getJson() {
 }
 
 void status() {
-  tft.drawRect(0, 0, 240 ,20, TFT_BLACK);
+  tft.drawRect(0, 0, 240 ,20, BG_COLOR);
   tft.setCursor(0, 0);
-  AimHangul_h2(20, 5, dateString, WHITE);  // 한글 출력 가능한 함수 - (x좌표, y좌표, 글, 색)
-  tft.drawLine(0, 25, 240, 25, WHITE);  // 직선을 그리는 함수 - (출발점 x, 출발점 y, 도착점 x, 도착점 y, 색)
+  AimHangul_h2(20, 5, dateString, FG_COLOR);  // 한글 출력 가능한 함수 - (x좌표, y좌표, 글, 색)
+  tft.drawLine(0, 25, 240, 25, FG_COLOR);  // 직선을 그리는 함수 - (출발점 x, 출발점 y, 도착점 x, 도착점 y, 색)
 }
 
 struct Point {
@@ -202,8 +206,8 @@ struct Point calculateHandEndpoint(int centerX, int centerY, double length, doub
 
 
 void clockScene(const String& timeString) {
-  int centerX = 120, centerY = 114;
-  double hourHandLength = 24, minuteHandLength = 32;
+  int centerX = 120, centerY = 125;
+  double hourHandLength = 38, minuteHandLength = 51;
 
   // "hh:mm" 형식에서 시와 분 추출
   int hour = timeString.substring(0, 2).toInt(); // 시간 추출
@@ -234,14 +238,14 @@ void clockScene(const String& timeString) {
   tft.setCursor(30, 240);
   tft.println(timeString);
 
-  int image_size = 128;
-  tft.drawBitmap(centerX - image_size / 2, centerY - image_size / 2, clock_image, image_size, image_size, WHITE, BLACK);  // (120, 114)
+  int image_size = 200;
+  tft.drawBitmap(centerX - image_size / 2, 35, clock_image, image_size, image_size, FG_COLOR, BG_COLOR);  // (120, 114)
   tft.drawCircle(centerX, centerY, 3, GREEN);
   tft.drawLine(centerX, centerY, hourHandEnd.x, hourHandEnd.y, GREEN);
   tft.drawLine(centerX, centerY, minuteHandEnd.x, minuteHandEnd.y, GREEN);
 }
 
-void row4Scene(const String& row1, const String& row2, const String& row3, const String& row4, const String& image) {
+void row4Scene(const String& row1, const String& row2, const String& row3, const String& row4, const JsonArray& units, const String& image) {
   tft.setCursor(10, 210);  // 커서 좌표 설정 - (x좌표, y좌표)
   tft.setTextSize(2);  // 글자 크기 설정 - (크기)
   tft.println(row1);  // 글자(한글 제외) 작성 - (글)
@@ -252,9 +256,19 @@ void row4Scene(const String& row1, const String& row2, const String& row3, const
   tft.setCursor(10, 285);
   tft.println(row4);
   tft.setCursor(0, 30);
+  String unit;
+
+  unit = units[1].as<String>();
+  if (unit == "\u00b0C") {
+    tft.setCursor(140, 210 + 25*0);
+    tft.printf("%cC", 0xF7);
+  } else {
+    AimHangul(140, 210 + 25*0, unit, FG_COLOR);
+  }
+  
   const uint8_t* imageC = getImage(image);
   if (imageC != nullptr) {
-    tft.drawBitmap(56, 50, imageC, 128, 128, TFT_RED, TFT_BLACK);
+    tft.drawBitmap(40, 30, imageC, 160, 160, FG_COLOR, BG_COLOR);
   }
 }
 
@@ -264,7 +278,7 @@ void bigNumber(const String& number, const String& unit, const String& image) {
   Serial.println(image);
   const uint8_t* imageC = getImage(image);
   if (imageC != nullptr) {
-    tft.drawBitmap(56, 50, imageC, 128, 128, WHITE, BLACK);
+    tft.drawBitmap(20, 35, imageC, 200, 200, FG_COLOR, BG_COLOR);
   }
   tft.setTextSize(6);
   tft.setCursor(20, 240);
@@ -274,7 +288,7 @@ void bigNumber(const String& number, const String& unit, const String& image) {
     tft.setCursor(165, 250);
     tft.printf("%cC", 0xF7);
   } else {
-    AimHangul(165, 250, unit, WHITE);
+    AimHangul(165, 250, unit, FG_COLOR);
   }
 }
 
@@ -305,6 +319,7 @@ void parseScene(String jsonString) {
 
       // JSON 필수 데이터 체크
       if (!obj["template"] || !obj["image"]) {
+        
         Serial.println("Invalid JSON object detected");
         continue;
       }
@@ -319,8 +334,11 @@ void parseScene(String jsonString) {
         String row3 = rows[2].as<String>();
         String row4 = rows[3].as<String>();
         String image = obj["image"].as<String>();
+        JsonArray units = obj["unit"].as<JsonArray>();
+        Serial.println(units[0].as<String>());
+
         sceneManager.add([=]() {
-          row4Scene(row1, row2, row3, row4, image);
+          row4Scene(row1, row2, row3, row4, units, image);
         });
       } else if (templateName == "big-number") {
         if (!obj["number"] || !obj["unit"]) {
