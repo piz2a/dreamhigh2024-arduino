@@ -2,14 +2,15 @@
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 
 #include <AimHangul.h>
-#include <vector>
-#include <string>
-#include <functional>
-#include <iostream>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
+#include <vector>
+#include <string>
+#include <functional>
+#include <iostream>
+#include <math.h>
 #include "Image_print.h"
 
 #define WHITE 0xFFFF
@@ -19,26 +20,28 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke library
 #define BLACK 0x0000
 
 // [5G 안됨] Wi-Fi 네크워크의 SSID
-const char* ssid     = "ssid";
+const char* ssid     = "gbshs_com1 2.4G";
 // Wi-Fi 네트워크의 비밀번호
-const char* password = "password";
+const char* password = "happygbs";
+// Flask API URL
+const String url = "https://flask-hello-world-git-main-dduicoders-projects.vercel.app/";
 
-const String url = "https://raw.githubusercontent.com/piz2a/dreamhigh2024-arduino/refs/heads/master/scene-test.json";
-
-const int btnPin = A0;
-const int btnThreshold = 500;
-bool btn_prev;
 unsigned long timer = 0;
-const unsigned long refreshPeriod = 5000;  // 5000 ms마다 크롤링
+const unsigned long refreshPeriod = 10000;  // ms마다 크롤링
+String dateString = "";
 
 // 이미지를 여기에 등록해야 함.
 const uint8_t* getImage(const String& imageName) {
-    if (imageName == "clorox") {
-        return clorox_image;
-    } else if (imageName == "sunny") {
-        return sunny_image;
-    }
-    return nullptr;
+  if (imageName == "clorox") {
+    return clorox_image;
+  } else if (imageName == "sunny") {
+    return sunny_image;
+  } else if (imageName == "clock") {
+    return clock_image;
+  } else if (imageName == "hangang") {
+    return hangang_image;
+  }
+  return nullptr;
 }
 
 class SceneManager {
@@ -55,13 +58,14 @@ public:
     lastIndex = -1;  // 장면이 초기화되면 이전 상태도 리셋
   }
 
-  void add(std::function<void()> func) { 
-    scenes.push_back(func); 
+  void add(std::function<void()> func) {
+    scenes.push_back(func);
   }
 
   void load() {
     if (currentIndex != lastIndex) {  // 현재 장면과 이전 장면이 다를 때만 갱신
       tft.fillScreen(BLACK);          // 화면 초기화
+      status();
       if (currentIndex < scenes.size()) {
         scenes[currentIndex]();       // 현재 장면 호출
       }
@@ -72,6 +76,8 @@ public:
 
   void next() {
     currentIndex = (currentIndex + 1) % scenes.size();
+    Serial.print("new currentIndex: ");
+    Serial.println(currentIndex);
     load();
   }
 };
@@ -82,13 +88,11 @@ void setup() {
   Serial.begin(9600);
   tft.begin();
   tft.setRotation(0);
-  
-  btn_prev = analogRead(btnPin) > btnThreshold;
 
   pinMode(D8, OUTPUT);
   digitalWrite(D8, HIGH);
-  
-  //wifiConnect();
+
+  wifiConnect();
 
   sceneManager.load();
 }
@@ -96,8 +100,12 @@ void setup() {
 void loop() {
   if (millis() >= timer) {  // refreshPeriod마다
     String jsonString = getJson();  // R"([...])"
-    parseScene(jsonString);
-    sceneManager.load();
+    if (jsonString != "[]") {
+      parseScene(jsonString);
+      sceneManager.load();
+    } else {  // if there's no internet
+      AimHangul_h2(20, 5, "No Internet", WHITE);
+    }
     timer += refreshPeriod;
     Serial.print("Free Memory: ");
     Serial.println(ESP.getFreeHeap());
@@ -106,6 +114,7 @@ void loop() {
   // 버튼 입력 들어오면 다음 장면으로 전환 - 더블클릭 구분
   if (detect_touch()) {
     sceneManager.next();
+    delay(50);
   }
   delay(10);
 }
@@ -113,26 +122,33 @@ void loop() {
 void wifiConnect() {
   delay(10);
   Serial.println('\n');
-  
+
   WiFi.begin(ssid, password);             // Connect to the network
   Serial.print("Connecting to ");
   Serial.print(ssid); Serial.println(" ...");
 
   int i = 0;
-  while (WiFi.status()    != WL_CONNECTED) { // Wait for the Wi-Fi to connect
+  while (WiFi.status() != WL_CONNECTED) { // Wait for the Wi-Fi to connect
     if (i >= 30) {
       Serial.println("Connection failed");
       return;
     }
     delay(1000);
     Serial.print(++i); Serial.print(' ');
-    tft.setCursor(0,0);
-    tft.fillScreen(TFT_BLACK);
-    tft.println("CONNECTING...");
+    tft.setTextSize(2);
+    tft.setCursor(10, 30);
+    if (i % 3 == 1) {
+      tft.fillScreen(TFT_BLACK);
+      tft.print("CONNECTING.");
+    } else if (i % 3 == 2) {
+      tft.print("CONNECTING..");
+    } else {
+      tft.print("CONNECTING...");
+    }
   }
 
   Serial.println('\n');
-  
+
   Serial.println("Connection established!");
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
@@ -160,35 +176,72 @@ String getJson() {
       Serial.printf("[HTTPS] Unable to connect\n");
     }
   }
-  return R"([
-	{
-		"template": "big-number",
-		"number": "1300",
-		"unit": "원/100mL",
-		"image": "clorox"
-	},
-	{
-		"template": "4row",
-		"row": [
-			"Temp: __._`C",
-			"Humidity: __._%",
-			"Max Temp: __._`C",
-			"Min_Temp: __._`C"
-		],
-		"image": "sunny"
-	}
-])";
+  return "[]";
 }
 
-void status() {  // 시간도 출력하면 좋을 것 같다
+void status() {
   tft.drawRect(0, 0, 240 ,20, TFT_BLACK);
   tft.setCursor(0, 0);
-  AimHangul_h2(20, 5, "YY/MM/DD  DAY", WHITE);  // 한글 출력 가능한 함수 - (x좌표, y좌표, 글, 색)
+  AimHangul_h2(20, 5, dateString, WHITE);  // 한글 출력 가능한 함수 - (x좌표, y좌표, 글, 색)
   tft.drawLine(0, 25, 240, 25, WHITE);  // 직선을 그리는 함수 - (출발점 x, 출발점 y, 도착점 x, 도착점 y, 색)
 }
 
+struct Point {
+  double x;
+  double y;
+};
+
+// 시계바늘 끝점 좌표를 계산하는 함수
+struct Point calculateHandEndpoint(int centerX, int centerY, double length, double angleDegrees) {
+  double angleRadians = angleDegrees * (PI / 180.0); // 각도를 라디안으로 변환
+  struct Point endpoint;
+  endpoint.x = centerX + length * sin(angleRadians);
+  endpoint.y = centerY - length * cos(angleRadians);
+  return endpoint;
+}
+
+
+void clockScene(const String& timeString) {
+  int centerX = 120, centerY = 114;
+  double hourHandLength = 24, minuteHandLength = 32;
+
+  // "hh:mm" 형식에서 시와 분 추출
+  int hour = timeString.substring(0, 2).toInt(); // 시간 추출
+  int minute = timeString.substring(3, 5).toInt(); // 분 추출
+
+  // 시침과 분침의 각도 계산
+  double hourAngle = (hour % 12) * 30 + minute * 0.5; // 시침 각도
+  double minuteAngle = minute * 6;                   // 분침 각도
+
+  // 각도를 기반으로 끝점 좌표 계산
+  struct Point hourHandEnd = calculateHandEndpoint(centerX, centerY, hourHandLength, hourAngle);
+  struct Point minuteHandEnd = calculateHandEndpoint(centerX, centerY, minuteHandLength, minuteAngle);
+
+  // 결과를 시리얼 모니터에 출력
+  Serial.print("Hour hand endpoint: (");
+  Serial.print(hourHandEnd.x);
+  Serial.print(", ");
+  Serial.print(hourHandEnd.y);
+  Serial.println(")");
+
+  Serial.print("Minute hand endpoint: (");
+  Serial.print(minuteHandEnd.x);
+  Serial.print(", ");
+  Serial.print(minuteHandEnd.y);
+  Serial.println(")");
+
+  tft.setTextSize(6);
+  tft.setCursor(30, 240);
+  tft.println(timeString);
+
+  int image_size = 128;
+  tft.drawBitmap(centerX - image_size / 2, centerY - image_size / 2, clock_image, image_size, image_size, WHITE, BLACK);  // (120, 114)
+  tft.drawCircle(centerX, centerY, 3, GREEN);
+  tft.drawLine(centerX, centerY, hourHandEnd.x, hourHandEnd.y, GREEN);
+  tft.drawLine(centerX, centerY, minuteHandEnd.x, minuteHandEnd.y, GREEN);
+}
+
 void row4Scene(const String& row1, const String& row2, const String& row3, const String& row4, const String& image) {
-  status();
   tft.setCursor(10, 210);  // 커서 좌표 설정 - (x좌표, y좌표)
   tft.setTextSize(2);  // 글자 크기 설정 - (크기)
   tft.println(row1);  // 글자(한글 제외) 작성 - (글)
@@ -199,19 +252,30 @@ void row4Scene(const String& row1, const String& row2, const String& row3, const
   tft.setCursor(10, 285);
   tft.println(row4);
   tft.setCursor(0, 30);
-  tft.drawBitmap(56, 50, getImage(image), 128, 128, TFT_RED, TFT_BLACK);  // 이미지 출력(단색 이미지만) - (x, y, 비맵, 너비, 높이, 전경 색, 배경 색)
+  const uint8_t* imageC = getImage(image);
+  if (imageC != nullptr) {
+    tft.drawBitmap(56, 50, imageC, 128, 128, TFT_RED, TFT_BLACK);
+  }
 }
 
 void bigNumber(const String& number, const String& unit, const String& image) {
-  status();
   Serial.println(number);
   Serial.println(unit);
   Serial.println(image);
-  tft.drawBitmap(56, 50, getImage(image), 128, 128, WHITE, BLACK);
+  const uint8_t* imageC = getImage(image);
+  if (imageC != nullptr) {
+    tft.drawBitmap(56, 50, imageC, 128, 128, WHITE, BLACK);
+  }
   tft.setTextSize(6);
   tft.setCursor(20, 240);
   tft.println(number);
-  AimHangul(165, 250, unit, WHITE);
+  if (unit == "\u00b0C") {
+    tft.setTextSize(3);
+    tft.setCursor(165, 250);
+    tft.printf("%cC", 0xF7);
+  } else {
+    AimHangul(165, 250, unit, WHITE);
+  }
 }
 
 void parseScene(String jsonString) {
@@ -229,14 +293,21 @@ void parseScene(String jsonString) {
   for (JsonVariant v : array) {
     if (v.is<JsonObject>()) {
       JsonObject obj = v.as<JsonObject>();
+      
+      String templateName = obj["template"];
+      if (templateName == "clock") {
+        dateString = obj["date"].as<String>();
+        String timeString = obj["time"].as<String>();
+        sceneManager.add([=]() {
+          clockScene(timeString);
+        });
+      }
 
       // JSON 필수 데이터 체크
       if (!obj["template"] || !obj["image"]) {
         Serial.println("Invalid JSON object detected");
         continue;
       }
-
-      String templateName = obj["template"];
       if (templateName == "4row") {
         JsonArray rows = obj["row"].as<JsonArray>();
         if (rows.size() < 4) {
@@ -262,11 +333,10 @@ void parseScene(String jsonString) {
         sceneManager.add([=]() {
           bigNumber(number, unit, image);
         });
-      } 
+      }
     }
   }
 }
-
 
 int detect_touch() {
   uint16_t x, y; // To store the touch coordinates
