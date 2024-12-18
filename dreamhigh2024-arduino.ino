@@ -23,7 +23,7 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke library
 #define FG_COLOR TFT_WHITE
 
 // [5G 안됨] Wi-Fi 네크워크의 SSID
-const char* ssid     = "gbshs-rain 2.4G";
+const char* ssid     = "gbshs_com1 2.4G";
 // Wi-Fi 네트워크의 비밀번호
 const char* password = "happygbs";
 // Flask API URL
@@ -256,15 +256,6 @@ void row4Scene(const String& row1, const String& row2, const String& row3, const
   tft.setCursor(10, 285);
   tft.println(row4);
   tft.setCursor(0, 30);
-  String unit;
-
-  unit = units[1].as<String>();
-  if (unit == "\u00b0C") {
-    tft.setCursor(140, 210 + 25*0);
-    tft.printf("%cC", 0xF7);
-  } else {
-    AimHangul(140, 210 + 25*0, unit, FG_COLOR);
-  }
   
   const uint8_t* imageC = getImage(image);
   if (imageC != nullptr) {
